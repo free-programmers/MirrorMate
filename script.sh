@@ -58,10 +58,10 @@ EOF
 
 # User info display
 echo -e "\n🔧 Running Script for:\n" | lolcat
-echo -e "   👤 User:          $TARGET_USER"
-echo -e "   🏠 Home Directory: $TARGET_HOME"
-echo -e "   🔁 Distro Codename: $DISTRO_CODENAME"
-echo -e "   🗓 Release Version: $DISTRO_VERSION\n" | lolcat
+echo -e "   👤 User:          $TARGET_USER" | lolcat
+echo -e "   🏠 Home Directory: $TARGET_HOME" | lolcat
+echo -e "   🔁 Distro Codename: $DISTRO_CODENAME" | lolcat
+echo -e "   🗓  Release Version: $DISTRO_VERSION\n" | lolcat
 
 sleep 2
 # =====================================================
@@ -76,10 +76,6 @@ load_user_env() {
 }
 
 load_user_env
-
-
-
-
 
 # =====================================================
 # Mirror list
@@ -176,6 +172,20 @@ restore_config() {
     esac
 }
 
+get_ping() {
+    local url="$1"
+    # Extract host from URL
+    local host
+    host=$(echo "$url" | awk -F[/:] '{print $4}')
+    # Ping once and get average round-trip time
+    if ping -c 1 -W 1 "$host" &>/dev/null; then
+        ping -c 1 -W 1 "$host" | tail -1 | awk -F '/' '{print $5 " ms"}'
+    else
+        echo "unreachable"
+    fi
+}
+
+
 # =====================================================
 # Apply mirrors
 # =====================================================
@@ -231,17 +241,25 @@ main_menu() {
     categories+=("Quit" "Exit")
     whiptail --title "MirrorMate" --menu "Select a category:" 20 70 10 "${categories[@]}" 3>&1 1>&2 2>&3
 }
+# =====================================================
+# Mirror Menu
+# =====================================================
 
 mirror_menu() {
     local category="$1"
     local items=()
+
     for entry in "${MIRRORS[@]}"; do
-        IFS='|' read -r cat name _ <<< "$entry"
-        [[ "$cat" == "$category" ]] && items+=("$name" "$name")
+        IFS='|' read -r cat name url <<< "$entry"
+        [[ "$cat" == "$category" ]] || continue
+        ping_time=$(get_ping "$url")
+        items+=("$name" "$Ping: $ping_time")
     done
     items+=("back" "Go Back")
-    whiptail --title "$category Mirrors" --menu "Select a mirror:" 20 90 10 "${items[@]}" 3>&1 1>&2 2>&3
+    whiptail --title "$category Mirrors" --menu "Select a mirror (ping shown):" 20 120 10 "${items[@]}" 3>&1 1>&2 2>&3
 }
+
+
 
 restore_menu() {
     local items=()
@@ -290,6 +308,7 @@ while true; do
             ;;
         *)
             while true; do
+                echo "Calculating Ping, please wait ..."
                 mchoice=$(mirror_menu "$choice")
                 [[ "$mchoice" == "back" ]] && break
                 for entry in "${MIRRORS[@]}"; do
