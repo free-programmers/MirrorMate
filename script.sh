@@ -17,6 +17,11 @@ TARGET_HOME=$(eval echo "~$TARGET_USER")
 
 BACKUP_DIR="/var/lib/mirrormate/backup"
 mkdir -p "$BACKUP_DIR"
+DISTRO_CODENAME=$(
+    grep "UBUNTU_CODENAME" /etc/os-release | cut -d= -f2 ||
+    lsb_release -sc
+)
+DISTRO_VERSION=$(grep VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
 
 # =====================================================
 # Install dependencies if missing
@@ -36,17 +41,29 @@ for dep in whiptail figlet lolcat; do
     fi
 done
 
-clear
-figlet -f standard MirrorMate | lolcat
-cat <<'EOF'
-/*
-    MirrorMate — Your new BFF for switching to the fastest open-source mirrors without breaking a sweat! 😎✨
-    github: https://github.com/free-programmers/MirrorMate
-*/
-EOF
-echo "Running Script for User: $TARGET_USER and home directory: $TARGET_HOME"
-sleep 2
 
+clear
+
+# Fancy title
+figlet -f slant "MirrorMate" | lolcat
+
+# Intro banner
+cat <<'EOF' | lolcat
+/*───────────────────────────────────────────────────────────────
+    🚀 MirrorMate — Your new BFF for supercharging your system!  
+    ⚡ Switch to the fastest open-source mirrors, stress-free!  
+    😎✨ GitHub: https://github.com/free-programmers/MirrorMate
+───────────────────────────────────────────────────────────────*/
+EOF
+
+# User info display
+echo -e "\n🔧 Running Script for:\n" | lolcat
+echo -e "   👤 User:          $TARGET_USER"
+echo -e "   🏠 Home Directory: $TARGET_HOME"
+echo -e "   🔁 Distro Codename: $DISTRO_CODENAME"
+echo -e "   🗓 Release Version: $DISTRO_VERSION\n" | lolcat
+
+sleep 2
 # =====================================================
 # Load user environment
 # =====================================================
@@ -59,6 +76,10 @@ load_user_env() {
 }
 
 load_user_env
+
+
+
+
 
 # =====================================================
 # Mirror list
@@ -93,25 +114,26 @@ MIRRORS=(
     "Go|GoProxy - Aliyun (China)|https://mirrors.aliyun.com/goproxy/"
     "Go|GoProxy - Golang Official (Global)|https://proxy.golang.org"
 
-    "APT|Ubuntu - ArvanCloud (Iran)|deb http://mirror.arvancloud.ir/ubuntu/ noble main restricted universe multiverse
-    deb http://mirror.arvancloud.ir/ubuntu/ noble-updates main restricted universe multiverse
-    deb http://mirror.arvancloud.ir/ubuntu/ noble-security main restricted universe multiverse"
-    
-    "APT|Ubuntu - Tsinghua (China)|deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble main restricted universe multiverse
-    deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-updates main restricted universe multiverse
-    deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-security main restricted universe multiverse"
-    
-    "APT|Ubuntu - MobinHost (Iran)|deb https://ubuntu.mobinhost.com/ubuntu/ noble main restricted universe multiverse
-    deb https://ubuntu.mobinhost.com/ubuntu/ noble-updates main restricted universe multiverse
-    deb https://ubuntu.mobinhost.com/ubuntu/ noble-security main restricted universe multiverse"
-    
-    "APT|Ubuntu - IranRepo (IR ICT) (Iran)|deb https://repo.ito.gov.ir/ubuntu/ jammy main restricted universe multiverse
-    deb https://repo.ito.gov.ir/ubuntu jammy-updates main restricted universe multiverse
-    deb https://repo.ito.gov.ir/ubuntu/ jammy-security main restricted universe multiverse"
-    
-    "APT|Ubuntu - Official (Global)|deb http://archive.ubuntu.com/ubuntu jammy main restricted universe multiverse
-    deb http://archive.ubuntu.com/ubuntu jammy-updates main restricted universe multiverse
-    deb http://archive.ubuntu.com/ubuntu jammy-security main restricted universe multiverse"
+    "APT|Ubuntu - ArvanCloud (Iran)|deb http://mirror.arvancloud.ir/ubuntu/ $DISTRO_CODENAME main restricted universe multiverse
+    deb http://mirror.arvancloud.ir/ubuntu/ ${DISTRO_CODENAME}-updates main restricted universe multiverse
+    deb http://mirror.arvancloud.ir/ubuntu/ ${DISTRO_CODENAME}-security main restricted universe multiverse"
+
+    "APT|Ubuntu - Tsinghua (China)|deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ $DISTRO_CODENAME main restricted universe multiverse
+    deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ ${DISTRO_CODENAME}-updates main restricted universe multiverse
+    deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ ${DISTRO_CODENAME}-security main restricted universe multiverse"
+
+    "APT|Ubuntu - MobinHost (Iran)|deb https://ubuntu.mobinhost.com/ubuntu/ $DISTRO_CODENAME main restricted universe multiverse
+    deb https://ubuntu.mobinhost.com/ubuntu/ ${DISTRO_CODENAME}-updates main restricted universe multiverse
+    deb https://ubuntu.mobinhost.com/ubuntu/ ${DISTRO_CODENAME}-security main restricted universe multiverse"
+
+    "APT|Ubuntu - IranRepo (IR ICT) (Iran)|deb https://repo.ito.gov.ir/ubuntu/ $DISTRO_CODENAME main restricted universe multiverse
+    deb https://repo.ito.gov.ir/ubuntu ${DISTRO_CODENAME}-updates main restricted universe multiverse
+    deb https://repo.ito.gov.ir/ubuntu/ ${DISTRO_CODENAME}-security main restricted universe multiverse"
+
+    "APT|Ubuntu - Official (Global)|deb http://archive.ubuntu.com/ubuntu $DISTRO_CODENAME main restricted universe multiverse
+    deb http://archive.ubuntu.com/ubuntu ${DISTRO_CODENAME}-updates main restricted universe multiverse
+    deb http://archive.ubuntu.com/ubuntu ${DISTRO_CODENAME}-security main restricted universe multiverse"
+
 )
 
 
