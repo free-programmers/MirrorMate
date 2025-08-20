@@ -1,0 +1,38 @@
+# Python
+"Python|PyPI - Runflare (Iran)|https://mirror-pypi.runflare.com/simple"
+"Python|PyPI - Tsinghua (China)|https://pypi.tuna.tsinghua.edu.cn/simple"
+"Python|PyPI - Aliyun (China)|https://mirrors.aliyun.com/pypi/simple/"
+"Python|PyPI - IranRepo (IR ICT) (Iran)|https://repo.ito.gov.ir/python/"
+"Python|PyPI - Mecan (AhmadRafiee) (Iran)|https://repo.mecan.ir/repository/pypi/"
+"Python|PyPI - USTC (China)|https://pypi.mirrors.ustc.edu.cn/simple/"
+"Python|PyPI - Fastly (Global)|https://pypi.org/simple"
+"Python|PyPI - sustech.edu (China)|https://mirrors.sustech.edu.cn/pypi/web/simple"
+"Python|PyPI - cloud.tencent.com (China)|https://mirrors.cloud.tencent.com/pypi/simple/"
+
+# Node.js
+"Node.js|NPM - RunFlare (Iran)|https://mirror-npm.runflare.com"
+"Node.js|NPM - Tsinghua (China)|https://registry.npmmirror.com"
+"Node.js|NPM - Aliyun (China)|https://registry.npm.taobao.org"
+"Node.js|NPM - IranRepo (IR ICT) (Iran)|https://repo.ito.gov.ir/npm/"
+"Node.js|NPM - Yarnpkg (Global)|https://registry.yarnpkg.com"
+
+# Docker
+"Docker|Docker Hub - Docker Official (Global)|https://registry-1.docker.io"
+"Docker|Docker Hub - ArvanCloud (Iran)|https://docker.arvancloud.ir/"
+"Docker|Docker Hub - Hamravesh (Iran)|https://hub.hamdocker.ir/"
+"Docker|Docker Hub - Focker (Iran)|https://focker.ir"
+"Docker|Docker Hub - Runflare (Iran)|https://mirror-docker.runflare.com"
+"Docker|Docker Hub - IranServer (Iran)|https://docker.iranserver.com/"
+"Docker|Docker Hub - USTC (China)|https://docker.mirrors.ustc.edu.cn/"
+"Docker|Docker Hub - MobinHost (Iran)|https://docker.mobinhost.com/"
+
+# Go
+"Go|GoProxy - Aliyun (China)|https://mirrors.aliyun.com/goproxy/"
+"Go|GoProxy - Golang Official (Global)|https://proxy.golang.org"
+
+# APT
+"APT|Ubuntu - ArvanCloud (Iran)|deb http://mirror.arvancloud.ir/ubuntu/ noble main restricted universe multiverse\ndeb http://mirror.arvancloud.ir/ubuntu/ noble-updates main restricted universe multiverse\ndeb http://mirror.arvancloud.ir/ubuntu/ noble-security main restricted universe multiverse"
+"APT|Ubuntu - Tsinghua (China)|deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble main restricted universe multiverse\ndeb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-updates main restricted universe multiverse\ndeb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-security main restricted universe multiverse"
+"APT|Ubuntu - MobinHost (Iran)|deb https://ubuntu.mobinhost.com/ubuntu/ noble main restricted universe multiverse\ndeb https://ubuntu.mobinhost.com/ubuntu/ noble-updates main restricted universe multiverse\ndeb https://ubuntu.mobinhost.com/ubuntu/ noble-security main restricted universe multiverse"
+"APT|Ubuntu - IranRepo (IR ICT) (Iran)|deb https://repo.ito.gov.ir/ubuntu/ jammy main restricted universe multiverse\ndeb https://repo.ito.gov.ir/ubuntu jammy-updates main restricted universe multiverse\ndeb https://repo.ito.gov.ir/ubuntu/ jammy-security main restricted universe multiverse"
+"APT|Ubuntu - Official (Global)|deb http://archive.ubuntu.com/ubuntu jammy main restricted universe multiverse\ndeb http://archive.ubuntu.com/ubuntu jammy-updates main restricted universe multiverse\ndeb http://archive.ubuntu.com/ubuntu jammy-security main restricted universe multiverse"
