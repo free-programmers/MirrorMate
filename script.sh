@@ -19,7 +19,7 @@ BACKUP_DIR="/var/lib/mirrormate/backup"
 mkdir -p "$BACKUP_DIR"
 DISTRO_CODENAME=$(
     grep "UBUNTU_CODENAME" /etc/os-release | cut -d= -f2 ||
-    lsb_release -sc
+        lsb_release -sc
 )
 DISTRO_VERSION=$(grep VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
 
@@ -40,7 +40,6 @@ for dep in whiptail figlet lolcat; do
         fi
     fi
 done
-
 
 clear
 
@@ -132,18 +131,32 @@ MIRRORS=(
 
 )
 
-
 # =====================================================
 # Dependency check
 # =====================================================
 check_dependency() {
     local category="$1"
     case "$category" in
-        Python) command -v pip &>/dev/null || { whiptail --msgbox "❌ pip not installed." 8 60; return 1; } ;;
-        Node.js) command -v npm &>/dev/null || { whiptail --msgbox "❌ npm not installed." 8 60; return 1; } ;;
-        Go) command -v go &>/dev/null || { whiptail --msgbox "❌ Go not installed." 8 60; return 1; } ;;
-        Docker) command -v docker &>/dev/null || { whiptail --msgbox "❌ Docker not installed." 8 60; return 1; } ;;
-        APT) command -v apt-get &>/dev/null || { whiptail --msgbox "❌ apt-get not found." 8 60; return 1; } ;;
+    Python) command -v pip &>/dev/null || {
+        whiptail --msgbox "❌ pip not installed." 8 60
+        return 1
+    } ;;
+    Node.js) command -v npm &>/dev/null || {
+        whiptail --msgbox "❌ npm not installed." 8 60
+        return 1
+    } ;;
+    Go) command -v go &>/dev/null || {
+        whiptail --msgbox "❌ Go not installed." 8 60
+        return 1
+    } ;;
+    Docker) command -v docker &>/dev/null || {
+        whiptail --msgbox "❌ Docker not installed." 8 60
+        return 1
+    } ;;
+    APT) command -v apt-get &>/dev/null || {
+        whiptail --msgbox "❌ apt-get not found." 8 60
+        return 1
+    } ;;
     esac
 }
 
@@ -153,22 +166,22 @@ check_dependency() {
 backup_config() {
     category="$1"
     case "$category" in
-        Python) [[ -f "$TARGET_HOME/.config/pip/pip.conf" ]] && cp "$TARGET_HOME/.config/pip/pip.conf" "$BACKUP_DIR/pip.conf" ;;
-        Node.js) [[ -f "$TARGET_HOME/.npmrc" ]] && cp "$TARGET_HOME/.npmrc" "$BACKUP_DIR/npmrc" ;;
-        Go) [[ -f "$TARGET_HOME/.config/go/env" ]] && cp "$TARGET_HOME/.config/go/env" "$BACKUP_DIR/go_env" ;;
-        Docker) [[ -f /etc/docker/daemon.json ]] && cp /etc/docker/daemon.json "$BACKUP_DIR/docker_daemon.json" ;;
-        APT) [[ -f /etc/apt/sources.list ]] && cp /etc/apt/sources.list "$BACKUP_DIR/sources.list" ;;
+    Python) [[ -f "$TARGET_HOME/.config/pip/pip.conf" ]] && cp "$TARGET_HOME/.config/pip/pip.conf" "$BACKUP_DIR/pip.conf" ;;
+    Node.js) [[ -f "$TARGET_HOME/.npmrc" ]] && cp "$TARGET_HOME/.npmrc" "$BACKUP_DIR/npmrc" ;;
+    Go) [[ -f "$TARGET_HOME/.config/go/env" ]] && cp "$TARGET_HOME/.config/go/env" "$BACKUP_DIR/go_env" ;;
+    Docker) [[ -f /etc/docker/daemon.json ]] && cp /etc/docker/daemon.json "$BACKUP_DIR/docker_daemon.json" ;;
+    APT) [[ -f /etc/apt/sources.list ]] && cp /etc/apt/sources.list "$BACKUP_DIR/sources.list" ;;
     esac
 }
 
 restore_config() {
     category="$1"
     case "$category" in
-        Python) [[ -f "$BACKUP_DIR/pip.conf" ]] && cp "$BACKUP_DIR/pip.conf" "$TARGET_HOME/.config/pip/pip.conf" ;;
-        Node.js) [[ -f "$BACKUP_DIR/npmrc" ]] && cp "$BACKUP_DIR/npmrc" "$TARGET_HOME/.npmrc" ;;
-        Go) [[ -f "$BACKUP_DIR/go_env" ]] && cp "$BACKUP_DIR/go_env" "$TARGET_HOME/.config/go/env" ;;
-        Docker) [[ -f "$BACKUP_DIR/docker_daemon.json" ]] && cp "$BACKUP_DIR/docker_daemon.json" /etc/docker/daemon.json && systemctl restart docker ;;
-        APT) [[ -f "$BACKUP_DIR/sources.list" ]] && cp "$BACKUP_DIR/sources.list" /etc/apt/sources.list && apt-get update ;;
+    Python) [[ -f "$BACKUP_DIR/pip.conf" ]] && cp "$BACKUP_DIR/pip.conf" "$TARGET_HOME/.config/pip/pip.conf" ;;
+    Node.js) [[ -f "$BACKUP_DIR/npmrc" ]] && cp "$BACKUP_DIR/npmrc" "$TARGET_HOME/.npmrc" ;;
+    Go) [[ -f "$BACKUP_DIR/go_env" ]] && cp "$BACKUP_DIR/go_env" "$TARGET_HOME/.config/go/env" ;;
+    Docker) [[ -f "$BACKUP_DIR/docker_daemon.json" ]] && cp "$BACKUP_DIR/docker_daemon.json" /etc/docker/daemon.json && systemctl restart docker ;;
+    APT) [[ -f "$BACKUP_DIR/sources.list" ]] && cp "$BACKUP_DIR/sources.list" /etc/apt/sources.list && apt-get update ;;
     esac
 }
 
@@ -185,7 +198,6 @@ get_ping() {
     fi
 }
 
-
 # =====================================================
 # Apply mirrors
 # =====================================================
@@ -196,31 +208,31 @@ apply_mirror() {
     if ! check_dependency "$category"; then return 1; fi
 
     case "$category" in
-        Python)
-            mkdir -p "$TARGET_HOME/.config/pip"
-            sudo -u "$TARGET_USER" env HOME="$TARGET_HOME" PATH="$PATH" pip config --user set global.index-url "$url"
-            ;;
-        Node.js)
-            sudo -u "$TARGET_USER" npm config set registry "$url" --location=user
-            ;;
-        Go)
-            sudo -u "$TARGET_USER" env HOME="$TARGET_HOME" PATH="$PATH" go env -w GOPROXY="$url"
-            ;;
-        Docker)
-            mkdir -p /etc/docker && \
-cat > /etc/docker/daemon.json <<EOF
+    Python)
+        mkdir -p "$TARGET_HOME/.config/pip"
+        sudo -u "$TARGET_USER" env HOME="$TARGET_HOME" PATH="$PATH" pip config --user set global.index-url "$url"
+        ;;
+    Node.js)
+        sudo -u "$TARGET_USER" npm config set registry "$url" --location=user
+        ;;
+    Go)
+        sudo -u "$TARGET_USER" env HOME="$TARGET_HOME" PATH="$PATH" go env -w GOPROXY="$url"
+        ;;
+    Docker)
+        mkdir -p /etc/docker &&
+            cat >/etc/docker/daemon.json <<EOF
 {
   "insecure-registries": ["$url"],
   "registry-mirrors": ["$url"]
 }
 EOF
-            sudo docker logout 
-            sudo systemctl restart docker
-            ;;
-        APT)
-            echo -e "$url" > /etc/apt/sources.list.d/mirrormate.list
-            apt-get update
-            ;;
+        sudo docker logout
+        sudo systemctl restart docker
+        ;;
+    APT)
+        echo -e "$url" >/etc/apt/sources.list.d/mirrormate.list
+        apt-get update
+        ;;
     esac
 }
 
@@ -231,7 +243,7 @@ main_menu() {
     local categories=()
     local seen=()
     for entry in "${MIRRORS[@]}"; do
-        IFS='|' read -r category _ _ <<< "$entry"
+        IFS='|' read -r category _ _ <<<"$entry"
         if [[ ! " ${seen[*]} " =~ " ${category} " ]]; then
             categories+=("$category" "$category mirrors list")
             seen+=("$category")
@@ -250,7 +262,7 @@ mirror_menu() {
     local items=()
 
     for entry in "${MIRRORS[@]}"; do
-        IFS='|' read -r cat name url <<< "$entry"
+        IFS='|' read -r cat name url <<<"$entry"
         [[ "$cat" == "$category" ]] || continue
         ping_time=$(get_ping "$url")
         items+=("$name" "$Ping: $ping_time")
@@ -259,13 +271,11 @@ mirror_menu() {
     whiptail --title "$category Mirrors" --menu "Select a mirror (ping shown):" 20 120 10 "${items[@]}" 3>&1 1>&2 2>&3
 }
 
-
-
 restore_menu() {
     local items=()
     local seen=()
     for entry in "${MIRRORS[@]}"; do
-        IFS='|' read -r category _ _ <<< "$entry"
+        IFS='|' read -r category _ _ <<<"$entry"
         [[ ! " ${seen[*]} " =~ " ${category} " ]] && items+=("$category" "Restore $category settings") && seen+=("$category")
     done
     items+=("all" "Restore All")
@@ -279,7 +289,7 @@ restore_menu() {
 [[ ! -f "$BACKUP_DIR/.initial_backup_done" ]] && {
     echo "📦 Performing initial backup..."
     for entry in "${MIRRORS[@]}"; do
-        IFS='|' read -r category _ _ <<< "$entry"
+        IFS='|' read -r category _ _ <<<"$entry"
         backup_config "$category"
     done
     touch "$BACKUP_DIR/.initial_backup_done"
@@ -291,42 +301,45 @@ restore_menu() {
 while true; do
     choice=$(main_menu) || exit 0
     case "$choice" in
-        Quit) exit 0 ;;
-        Restore)
-            rchoice=$(restore_menu)
-            case "$rchoice" in
-                all)
-                    for entry in "${MIRRORS[@]}"; do
-                        IFS='|' read -r category _ _ <<< "$entry"
-                        restore_config "$category"
-                    done
-                    whiptail --msgbox "✅ All settings restored from backup." 8 60
-                    ;;
-                back) continue ;;
-                *) restore_config "$rchoice" && whiptail --msgbox "✅ $rchoice settings restored from backup." 8 60 ;;
-            esac
+    Quit) exit 0 ;;
+    Restore)
+        rchoice=$(restore_menu)
+        case "$rchoice" in
+        all)
+            for entry in "${MIRRORS[@]}"; do
+                IFS='|' read -r category _ _ <<<"$entry"
+                restore_config "$category"
+            done
+            whiptail --msgbox "✅ All settings restored from backup." 8 60
             ;;
-        *)
-            while true; do
-                echo "Calculating Ping, please wait ..."
-                mchoice=$(mirror_menu "$choice")
-                [[ "$mchoice" == "back" ]] && break
-                for entry in "${MIRRORS[@]}"; do
-                    IFS='|' read -r category name url <<< "$entry"
-                    if [[ "$category" == "$choice" && "$name" == "$mchoice" ]]; then
-                        backup_config "$category"
-                        apply_mirror "$category" "$url"
-                        next_action=$(whiptail --title "Mirror Set" --menu "✅ Mirror set successfully!\nWhat next?" 10 80 2 \
+        back) continue ;;
+        *) restore_config "$rchoice" && whiptail --msgbox "✅ $rchoice settings restored from backup." 8 60 ;;
+        esac
+        ;;
+    *)
+        while true; do
+            echo "Calculating Ping, please wait ..."
+            mchoice=$(mirror_menu "$choice")
+            [[ "$mchoice" == "back" ]] && break
+            for entry in "${MIRRORS[@]}"; do
+                IFS='|' read -r category name url <<<"$entry"
+                if [[ "$category" == "$choice" && "$name" == "$mchoice" ]]; then
+                    backup_config "$category"
+                    apply_mirror "$category" "$url"
+                    next_action=$(whiptail --title "Mirror Set" --menu "✅ Mirror set successfully!\nWhat next?" 10 80 2 \
                         "1" "Exit" \
                         "2" "Back to Main Menu" 3>&1 1>&2 2>&3)
-                        case "$next_action" in
-                            1) echo "👋 Goodbye!"; exit 0 ;;
-                            2) break 2 ;;
-                            *) break 2 ;;
-                        esac
-                    fi
-                done
+                    case "$next_action" in
+                    1)
+                        echo "👋 Goodbye!"
+                        exit 0
+                        ;;
+                    2) break 2 ;;
+                    *) break 2 ;;
+                    esac
+                fi
             done
-            ;;
+        done
+        ;;
     esac
 done
