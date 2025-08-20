@@ -11,26 +11,30 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
+# Detect the real user (who invoked sudo)
+TARGET_USER="${SUDO_USER:-$USER}"
+TARGET_HOME=$(eval echo "~$TARGET_USER")
+
 BACKUP_DIR="/var/lib/mirrormate/backup"
 mkdir -p "$BACKUP_DIR"
 
+# =====================================================
 # Install dependencies if missing
-if ! command -v whiptail &>/dev/null; then
-    echo "Installing whiptail..."
-    apt-get update && apt-get install -y whiptail
-fi
+# =====================================================
 
-if ! command -v figlet &>/dev/null; then
-    echo "Installing figlet..."
-    apt-get update && apt-get install -y figlet
-fi
-
-if ! command -v lolcat &>/dev/null; then
-    echo "Installing lolcat..."
-    apt-get update
-    apt-get install -y ruby
-    gem install lolcat
-fi
+for dep in whiptail figlet lolcat; do
+    if ! command -v $dep &>/dev/null; then
+        echo "$dep is not installed on machine, trying to install it"
+        apt-get update
+        echo "Installing $dep..."
+        if [[ $dep == "lolcat" ]]; then
+            apt-get install -y ruby
+            gem install lolcat
+        else
+            apt-get install -y $dep
+        fi
+    fi
+done
 
 clear
 figlet -f standard MirrorMate | lolcat
@@ -40,14 +44,27 @@ cat <<'EOF'
     github: https://github.com/free-programmers/MirrorMate
 */
 EOF
+echo "Running Script for User: $TARGET_USER and home directory: $TARGET_HOME"
 sleep 2
 
 # =====================================================
+# Load user environment
+# =====================================================
+load_user_env() {
+    TARGET_USER_HOME=$(eval echo "~$TARGET_USER")
+
+    # only source if file exists
+    [[ -f "$TARGET_USER_HOME/.profile" ]] && source "$TARGET_USER_HOME/.profile" 2>/dev/null
+    [[ -f "$TARGET_USER_HOME/.bashrc" ]] && source "$TARGET_USER_HOME/.bashrc" 2>/dev/null
+}
+
+load_user_env
+
+# =====================================================
 # Mirror list
-# Format: category|display name|mirror URL
+# Format: category|display name|mirror URL or sources
 # =====================================================
 MIRRORS=(
-    # Python
     "Python|PyPI - Runflare (Iran)|https://mirror-pypi.runflare.com/simple"
     "Python|PyPI - Tsinghua (China)|https://pypi.tuna.tsinghua.edu.cn/simple"
     "Python|PyPI - Aliyun (China)|https://mirrors.aliyun.com/pypi/simple/"
@@ -55,149 +72,118 @@ MIRRORS=(
     "Python|PyPI - Mecan (AhmadRafiee) (Iran)|https://repo.mecan.ir/repository/pypi/"
     "Python|PyPI - USTC (China)|https://pypi.mirrors.ustc.edu.cn/simple/"
     "Python|PyPI - Fastly (Global)|https://pypi.org/simple"
+    "Python|PyPI - sustech.edu (China)|https://mirrors.sustech.edu.cn/pypi/web/simple"
+    "Python|PyPI - cloud.tencent.com (China)|https://mirrors.cloud.tencent.com/pypi/simple/"
 
-    # Node.js
     "Node.js|NPM - RunFlare (Iran)|https://mirror-npm.runflare.com"
     "Node.js|NPM - Tsinghua (China)|https://registry.npmmirror.com"
     "Node.js|NPM - Aliyun (China)|https://registry.npm.taobao.org"
     "Node.js|NPM - IranRepo (IR ICT) (Iran)|https://repo.ito.gov.ir/npm/"
     "Node.js|NPM - Yarnpkg (Global)|https://registry.yarnpkg.com"
 
-    # Docker
-    "Docker|Docker Hub - Runflare (Iran)|https://mirror-docker.runflare.com"
-    "Docker|Docker Hub - Focker (Iran)|https://focker.ir"
-    "Docker|Docker Hub - ArvanCloud (Iran)|https://docker.arvancloud.ir/"
-    "Docker|Docker Hub - Hamravesh (Iran)|https://hub.hamdocker.ir/"
-    "Docker|Docker Hub - IranServer (Iran)|https://docker.iranserver.com/"
-    "Docker|Docker Hub - USTC (China)|https://docker.mirrors.ustc.edu.cn/"
-    "Docker|Docker Hub - MobinHost (Iran)|https://docker.mobinhost.com/"
     "Docker|Docker Hub - Docker Official (Global)|https://registry-1.docker.io"
+    "Docker|Docker Hub - ArvanCloud (Iran)|https://docker.arvancloud.ir"
+    "Docker|Docker Hub - Hamravesh (Iran)|https://hub.hamdocker.ir"
+    "Docker|Docker Hub - Focker (Iran)|https://focker.ir"
+    "Docker|Docker Hub - Runflare (Iran)|https://mirror-docker.runflare.com"
+    "Docker|Docker Hub - IranServer (Iran)|https://docker.iranserver.com"
+    "Docker|Docker Hub - USTC (China)|https://docker.mirrors.ustc.edu.cn"
+    "Docker|Docker Hub - MobinHost (Iran)|https://docker.mobinhost.com"
 
-    # Go
     "Go|GoProxy - Aliyun (China)|https://mirrors.aliyun.com/goproxy/"
     "Go|GoProxy - Golang Official (Global)|https://proxy.golang.org"
 
-    # APT
-    "APT|Ubuntu - ArvanCloud (Iran)|deb http://mirror.arvancloud.ir/ubuntu/ noble main restricted universe multiverse\ndeb http://mirror.arvancloud.ir/ubuntu/ noble-updates main restricted universe multiverse\ndeb http://mirror.arvancloud.ir/ubuntu/ noble-security main restricted universe multiverse"
-    "APT|Ubuntu - Tsinghua (China)|deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble main restricted universe multiverse\ndeb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-updates main restricted universe multiverse\ndeb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-security main restricted universe multiverse"
-    "APT|Ubuntu - MobinHost (Iran)|deb https://ubuntu.mobinhost.com/ubuntu/ noble main restricted universe multiverse\ndeb https://ubuntu.mobinhost.com/ubuntu/ noble-updates main restricted universe multiverse\ndeb https://ubuntu.mobinhost.com/ubuntu/ noble-security main restricted universe multiverse"
-    "APT|Ubuntu - IranRepo (IR ICT) (Iran)|deb https://repo.ito.gov.ir/ubuntu/ jammy main restricted universe multiverse\ndeb https://repo.ito.gov.ir/ubuntu jammy-updates main restricted universe multiverse\ndeb https://repo.ito.gov.ir/ubuntu/ jammy-security main restricted universe multiverse"
-    "APT|Ubuntu - Official (Global)|deb http://archive.ubuntu.com/ubuntu jammy main restricted universe multiverse\ndeb http://archive.ubuntu.com/ubuntu jammy-updates main restricted universe multiverse\ndeb http://archive.ubuntu.com/ubuntu jammy-security main restricted universe multiverse"
+    "APT|Ubuntu - ArvanCloud (Iran)|deb http://mirror.arvancloud.ir/ubuntu/ noble main restricted universe multiverse
+    deb http://mirror.arvancloud.ir/ubuntu/ noble-updates main restricted universe multiverse
+    deb http://mirror.arvancloud.ir/ubuntu/ noble-security main restricted universe multiverse"
+    
+    "APT|Ubuntu - Tsinghua (China)|deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble main restricted universe multiverse
+    deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-updates main restricted universe multiverse
+    deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-security main restricted universe multiverse"
+    
+    "APT|Ubuntu - MobinHost (Iran)|deb https://ubuntu.mobinhost.com/ubuntu/ noble main restricted universe multiverse
+    deb https://ubuntu.mobinhost.com/ubuntu/ noble-updates main restricted universe multiverse
+    deb https://ubuntu.mobinhost.com/ubuntu/ noble-security main restricted universe multiverse"
+    
+    "APT|Ubuntu - IranRepo (IR ICT) (Iran)|deb https://repo.ito.gov.ir/ubuntu/ jammy main restricted universe multiverse
+    deb https://repo.ito.gov.ir/ubuntu jammy-updates main restricted universe multiverse
+    deb https://repo.ito.gov.ir/ubuntu/ jammy-security main restricted universe multiverse"
+    
+    "APT|Ubuntu - Official (Global)|deb http://archive.ubuntu.com/ubuntu jammy main restricted universe multiverse
+    deb http://archive.ubuntu.com/ubuntu jammy-updates main restricted universe multiverse
+    deb http://archive.ubuntu.com/ubuntu jammy-security main restricted universe multiverse"
 )
 
 
 # =====================================================
-# Backup functions
+# Dependency check
+# =====================================================
+check_dependency() {
+    local category="$1"
+    case "$category" in
+        Python) command -v pip &>/dev/null || { whiptail --msgbox "❌ pip not installed." 8 60; return 1; } ;;
+        Node.js) command -v npm &>/dev/null || { whiptail --msgbox "❌ npm not installed." 8 60; return 1; } ;;
+        Go) command -v go &>/dev/null || { whiptail --msgbox "❌ Go not installed." 8 60; return 1; } ;;
+        Docker) command -v docker &>/dev/null || { whiptail --msgbox "❌ Docker not installed." 8 60; return 1; } ;;
+        APT) command -v apt-get &>/dev/null || { whiptail --msgbox "❌ apt-get not found." 8 60; return 1; } ;;
+    esac
+}
+
+# =====================================================
+# Backup & Restore
 # =====================================================
 backup_config() {
-    back up mirros into $BACKUP_DIR
     category="$1"
     case "$category" in
-        Python)
-            val=$(pip config get global.index-url 2>/dev/null)
-            [[ -n "$val" ]] && echo "$val" > "$BACKUP_DIR/pip_index_url"
-            ;;
-        Node.js)
-            val=$(npm config get registry 2>/dev/null)
-            [[ -n "$val" ]] && echo "$val" > "$BACKUP_DIR/npm_registry"
-            ;;
-        Docker)
-            if [[ -f /etc/docker/daemon.json ]]; then
-                cp /etc/docker/daemon.json "$BACKUP_DIR/docker_daemon.json"
-            fi
-            ;;
-        Go)
-            val=$(go env GOPROXY 2>/dev/null)
-            [[ -n "$val" ]] && echo "$val" > "$BACKUP_DIR/go_proxy"
-            ;;
-        APT)
-            cp /etc/apt/sources.list "$BACKUP_DIR/sources.list" 2>/dev/null
-            ;;
+        Python) [[ -f "$TARGET_HOME/.config/pip/pip.conf" ]] && cp "$TARGET_HOME/.config/pip/pip.conf" "$BACKUP_DIR/pip.conf" ;;
+        Node.js) [[ -f "$TARGET_HOME/.npmrc" ]] && cp "$TARGET_HOME/.npmrc" "$BACKUP_DIR/npmrc" ;;
+        Go) [[ -f "$TARGET_HOME/.config/go/env" ]] && cp "$TARGET_HOME/.config/go/env" "$BACKUP_DIR/go_env" ;;
+        Docker) [[ -f /etc/docker/daemon.json ]] && cp /etc/docker/daemon.json "$BACKUP_DIR/docker_daemon.json" ;;
+        APT) [[ -f /etc/apt/sources.list ]] && cp /etc/apt/sources.list "$BACKUP_DIR/sources.list" ;;
     esac
 }
 
 restore_config() {
     category="$1"
     case "$category" in
-        Python) [[ -f "$BACKUP_DIR/pip_index_url" ]] && pip config set global.index-url "$(cat "$BACKUP_DIR/pip_index_url")" ;;
-        Node.js) [[ -f "$BACKUP_DIR/npm_registry" ]] && npm config set registry "$(cat "$BACKUP_DIR/npm_registry")" ;;
-        Docker) [[ -f "$BACKUP_DIR/docker_daemon.json" ]] && cp "$BACKUP_DIR/docker_daemon.json" /etc/docker/daemon.json && command -v docker &>/dev/null && systemctl is-active --quiet docker && systemctl restart docker ;;
-        Go) [[ -f "$BACKUP_DIR/go_proxy" ]] && go env -w GOPROXY="$(cat "$BACKUP_DIR/go_proxy")" ;;
+        Python) [[ -f "$BACKUP_DIR/pip.conf" ]] && cp "$BACKUP_DIR/pip.conf" "$TARGET_HOME/.config/pip/pip.conf" ;;
+        Node.js) [[ -f "$BACKUP_DIR/npmrc" ]] && cp "$BACKUP_DIR/npmrc" "$TARGET_HOME/.npmrc" ;;
+        Go) [[ -f "$BACKUP_DIR/go_env" ]] && cp "$BACKUP_DIR/go_env" "$TARGET_HOME/.config/go/env" ;;
+        Docker) [[ -f "$BACKUP_DIR/docker_daemon.json" ]] && cp "$BACKUP_DIR/docker_daemon.json" /etc/docker/daemon.json && systemctl restart docker ;;
         APT) [[ -f "$BACKUP_DIR/sources.list" ]] && cp "$BACKUP_DIR/sources.list" /etc/apt/sources.list && apt-get update ;;
     esac
 }
 
-
-check_dependency() {
-    local category="$1"
-    case "$category" in
-        Python)
-            if ! command -v pip &>/dev/null; then
-                whiptail --msgbox "❌ pip is not installed.\nPlease install Python pip before setting PyPI mirrors." 8 60
-                return 1
-            fi
-            ;;
-        Node.js)
-            if ! command -v npm &>/dev/null; then
-                whiptail --msgbox "❌ npm is not installed.\nPlease install Node.js before setting NPM mirrors." 8 60
-                return 1
-            fi
-            ;;
-        Docker)
-            if ! command -v docker &>/dev/null; then
-                whiptail --msgbox "❌ Docker is not installed.\nPlease install Docker before setting Docker mirrors." 8 60
-                return 1
-            fi
-            ;;
-        Go)
-            if ! command -v go &>/dev/null; then
-                whiptail --msgbox "❌ Go is not installed.\nPlease install Go before setting Go mirrors." 8 60
-                return 1
-            fi
-            ;;
-        APT)
-            if ! command -v apt-get &>/dev/null; then
-                whiptail --msgbox "❌ apt-get is not available.\nThis script requires apt-based system to set APT mirrors." 8 60
-                return 1
-            fi
-            ;;
-        *)
-            return 0
-            ;;
-    esac
-    return 0
-}
-
-
 # =====================================================
-# Apply functions
+# Apply mirrors
 # =====================================================
 apply_mirror() {
     category="$1"
     url="$2"
 
-    # Check dependency first
-    if ! check_dependency "$category"; then
-        return 1
-    fi
+    if ! check_dependency "$category"; then return 1; fi
 
     case "$category" in
         Python)
-            pip config set global.break-system-packages true
-            pip config set global.index-url "$url"
+            mkdir -p "$TARGET_HOME/.config/pip"
+            sudo -u "$TARGET_USER" env HOME="$TARGET_HOME" PATH="$PATH" pip config --user set global.index-url "$url"
             ;;
         Node.js)
-            npm config set registry "$url"
-            ;;
-        Docker)
-            mkdir -p /etc/docker
-            echo "{\"registry-mirrors\": [\"$url\"]}" > /etc/docker/daemon.json
-            if systemctl is-active --quiet docker; then
-                systemctl restart docker
-            fi
+            sudo -u "$TARGET_USER" npm config set registry "$url" --location=user
             ;;
         Go)
-            go env -w GOPROXY="$url"
+            sudo -u "$TARGET_USER" env HOME="$TARGET_HOME" PATH="$PATH" go env -w GOPROXY="$url"
+            ;;
+        Docker)
+            mkdir -p /etc/docker && \
+cat > /etc/docker/daemon.json <<EOF
+{
+  "insecure-registries": ["$url"],
+  "registry-mirrors": ["$url"]
+}
+EOF
+            sudo docker logout 
+            sudo systemctl restart docker
             ;;
         APT)
             echo -e "$url" > /etc/apt/sources.list.d/mirrormate.list
@@ -206,9 +192,8 @@ apply_mirror() {
     esac
 }
 
-
 # =====================================================
-# Menu functions
+# Menus
 # =====================================================
 main_menu() {
     local categories=()
@@ -222,7 +207,7 @@ main_menu() {
     done
     categories+=("Restore" "Restore previous settings")
     categories+=("Quit" "Exit")
-    whiptail --title "MirrorMate - Open Source Mirror Switcher" --menu "Select a category:" 20 70 10 "${categories[@]}" 3>&1 1>&2 2>&3
+    whiptail --title "MirrorMate" --menu "Select a category:" 20 70 10 "${categories[@]}" 3>&1 1>&2 2>&3
 }
 
 mirror_menu() {
@@ -230,12 +215,10 @@ mirror_menu() {
     local items=()
     for entry in "${MIRRORS[@]}"; do
         IFS='|' read -r cat name _ <<< "$entry"
-        if [[ "$cat" == "$category" ]]; then
-            items+=("$name" "$name")
-        fi
+        [[ "$cat" == "$category" ]] && items+=("$name" "$name")
     done
     items+=("back" "Go Back")
-    whiptail --title "$category Mirrors" --menu "Select a mirror:" 20 70 10 "${items[@]}" 3>&1 1>&2 2>&3
+    whiptail --title "$category Mirrors" --menu "Select a mirror:" 20 90 10 "${items[@]}" 3>&1 1>&2 2>&3
 }
 
 restore_menu() {
@@ -243,10 +226,7 @@ restore_menu() {
     local seen=()
     for entry in "${MIRRORS[@]}"; do
         IFS='|' read -r category _ _ <<< "$entry"
-        if [[ ! " ${seen[*]} " =~ " ${category} " ]]; then
-            items+=("$category" "Restore $category settings")
-            seen+=("$category")
-        fi
+        [[ ! " ${seen[*]} " =~ " ${category} " ]] && items+=("$category" "Restore $category settings") && seen+=("$category")
     done
     items+=("all" "Restore All")
     items+=("back" "Go Back")
@@ -254,16 +234,16 @@ restore_menu() {
 }
 
 # =====================================================
-# Ensure initial backup exists
+# Initial backup
 # =====================================================
-if [[ ! -f "$BACKUP_DIR/.initial_backup_done" ]]; then
+[[ ! -f "$BACKUP_DIR/.initial_backup_done" ]] && {
     echo "📦 Performing initial backup..."
     for entry in "${MIRRORS[@]}"; do
         IFS='|' read -r category _ _ <<< "$entry"
         backup_config "$category"
     done
     touch "$BACKUP_DIR/.initial_backup_done"
-fi
+}
 
 # =====================================================
 # Main loop
@@ -283,10 +263,7 @@ while true; do
                     whiptail --msgbox "✅ All settings restored from backup." 8 60
                     ;;
                 back) continue ;;
-                *)
-                    restore_config "$rchoice"
-                    whiptail --msgbox "✅ $rchoice settings restored from backup." 8 60
-                    ;;
+                *) restore_config "$rchoice" && whiptail --msgbox "✅ $rchoice settings restored from backup." 8 60 ;;
             esac
             ;;
         *)
@@ -298,7 +275,7 @@ while true; do
                     if [[ "$category" == "$choice" && "$name" == "$mchoice" ]]; then
                         backup_config "$category"
                         apply_mirror "$category" "$url"
-                        next_action=$(whiptail --title "Mirror Set" --menu "✅ Mirror set successfully!\nWhat do you want to do next?" 10 60 2 \
+                        next_action=$(whiptail --title "Mirror Set" --menu "✅ Mirror set successfully!\nWhat next?" 10 80 2 \
                         "1" "Exit" \
                         "2" "Back to Main Menu" 3>&1 1>&2 2>&3)
                         case "$next_action" in
