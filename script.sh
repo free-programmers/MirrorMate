@@ -127,12 +127,60 @@ restore_config() {
     esac
 }
 
+
+check_dependency() {
+    local category="$1"
+    case "$category" in
+        Python)
+            if ! command -v pip &>/dev/null; then
+                whiptail --msgbox "❌ pip is not installed.\nPlease install Python pip before setting PyPI mirrors." 8 60
+                return 1
+            fi
+            ;;
+        Node.js)
+            if ! command -v npm &>/dev/null; then
+                whiptail --msgbox "❌ npm is not installed.\nPlease install Node.js before setting NPM mirrors." 8 60
+                return 1
+            fi
+            ;;
+        Docker)
+            if ! command -v docker &>/dev/null; then
+                whiptail --msgbox "❌ Docker is not installed.\nPlease install Docker before setting Docker mirrors." 8 60
+                return 1
+            fi
+            ;;
+        Go)
+            if ! command -v go &>/dev/null; then
+                whiptail --msgbox "❌ Go is not installed.\nPlease install Go before setting Go mirrors." 8 60
+                return 1
+            fi
+            ;;
+        APT)
+            if ! command -v apt-get &>/dev/null; then
+                whiptail --msgbox "❌ apt-get is not available.\nThis script requires apt-based system to set APT mirrors." 8 60
+                return 1
+            fi
+            ;;
+        *)
+            return 0
+            ;;
+    esac
+    return 0
+}
+
+
 # =====================================================
 # Apply functions
 # =====================================================
 apply_mirror() {
     category="$1"
     url="$2"
+
+    # Check dependency first
+    if ! check_dependency "$category"; then
+        return 1
+    fi
+
     case "$category" in
         Python)
             pip config set global.break-system-packages true
@@ -144,7 +192,7 @@ apply_mirror() {
         Docker)
             mkdir -p /etc/docker
             echo "{\"registry-mirrors\": [\"$url\"]}" > /etc/docker/daemon.json
-            if command -v docker &>/dev/null && systemctl is-active --quiet docker; then
+            if systemctl is-active --quiet docker; then
                 systemctl restart docker
             fi
             ;;
@@ -157,6 +205,7 @@ apply_mirror() {
             ;;
     esac
 }
+
 
 # =====================================================
 # Menu functions
