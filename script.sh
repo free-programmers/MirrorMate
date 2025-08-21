@@ -56,11 +56,11 @@ cat <<'EOF' | lolcat
 EOF
 
 # User info display
-echo -e "\n🔧 Running Script for:\n" | lolcat
-echo -e "   👤 User:          $TARGET_USER" | lolcat
-echo -e "   🏠 Home Directory: $TARGET_HOME" | lolcat
-echo -e "   🔁 Distro Codename: $DISTRO_CODENAME" | lolcat
-echo -e "   🗓  Release Version: $DISTRO_VERSION\n" | lolcat
+echo -e "\n🔧 Running Script for:\n"
+echo -e "   👤 User:  $TARGET_USER"
+echo -e "   🏠 Home Directory: $TARGET_HOME"
+echo -e "   🔁 Distro Codename: $DISTRO_CODENAME"
+echo -e "   🗓 Release Version: $DISTRO_VERSION\n"
 
 sleep 2
 # =====================================================
