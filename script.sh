@@ -14,53 +14,57 @@ fi
 # Detect the real user (who invoked sudo)
 TARGET_USER="${SUDO_USER:-$USER}"
 TARGET_HOME=$(eval echo "~$TARGET_USER")
-
 BACKUP_DIR="/var/lib/mirrormate/backup"
-mkdir -p "$BACKUP_DIR"
 DISTRO_CODENAME=$(
 	grep "UBUNTU_CODENAME" /etc/os-release | cut -d= -f2 ||
 		lsb_release -sc
 )
 DISTRO_VERSION=$(grep VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
+mkdir -p "$BACKUP_DIR"
 
 # =====================================================
-# Install dependencies if missing
+# Check and install whiptail if missing
 # =====================================================
-
-for dep in whiptail figlet lolcat; do
-	if ! command -v $dep &>/dev/null; then
-		echo "$dep is not installed on machine, trying to install it"
-		apt-get update
-		echo "Installing $dep..."
-		if [[ $dep == "lolcat" ]]; then
-			apt-get install -y ruby
-			gem install lolcat
-		else
-			apt-get install -y $dep
-		fi
-	fi
-done
+if ! command -v whiptail &>/dev/null; then
+    read -rp "⚠️  'whiptail' is required but not installed. Do you want to install it now? [y/N]: " choice
+    if [[ "$choice" =~ ^[Yy]$ ]]; then
+        apt-get update -y
+        echo "Installing whiptail..."
+        apt-get install -y whiptail
+    else
+        echo "❌ 'whiptail' is required to run this application. Exiting..."
+        exit 1
+    fi
+fi
 
 clear
 
-# Fancy title
-figlet -f slant "MirrorMate" | lolcat
+echo -e "\e[32m"
+cat <<'EOF'
+ __  __ _                     __  __       _
+|  \/  (_)_ __ _ __ ___  _ __|  \/  | __ _| |_ ___
+| |\/| | | '__| '__/ _ \| '__| |\/| |/ _` | __/ _ \
+| |  | | | |  | | | (_) | |  | |  | | (_| | ||  __/
+|_|  |_|_|_|  |_|  \___/|_|  |_|  |_|\__,_|\__\___|
+EOF
+echo -e "\e[0m"
 
 # Intro banner
-cat <<'EOF' | lolcat
-/*───────────────────────────────────────────────────────────────
-    🚀 MirrorMate — Your new BFF for supercharging your system!  
-    ⚡ Switch to the fastest open-source mirrors, stress-free!  
-    😎✨ GitHub: https://github.com/free-programmers/MirrorMate
-───────────────────────────────────────────────────────────────*/
+cat <<'EOF' 
+───────────────────────────────────────────────────────────────
+ 🚀 MirrorMate — Your new BFF for blazing-fast mirrors!  
+ ⚡ Switch effortlessly to the fastest open-source repositories  
+ 😎 GitHub: https://github.com/free-programmers/MirrorMate
+───────────────────────────────────────────────────────────────
 EOF
 
 # User info display
-echo -e "\n🔧 Running Script for:\n"
-echo -e "   👤 User:  $TARGET_USER"
-echo -e "   🏠 Home Directory: $TARGET_HOME"
-echo -e "   🔁 Distro Codename: $DISTRO_CODENAME"
-echo -e "   🗓 Release Version: $DISTRO_VERSION\n"
+echo -e "\n🔧 Running Script For \n"
+printf "   👤 User             : %s\n"  "$TARGET_USER"
+printf "   🏠 Home Directory   : %s\n"  "$TARGET_HOME"
+printf "   🔁 Distro Codename  : %s\n"  "$DISTRO_CODENAME"
+printf "   🗓  Release Version  : %s\n"  "$DISTRO_VERSION"
+echo -e "\n───────────────────────────────────────────────────────────────\n"
 
 sleep 2
 # =====================================================
@@ -123,23 +127,23 @@ check_dependency() {
 	case "$category" in
 	Python) command -v pip &>/dev/null || {
 		whiptail --msgbox "❌ pip not installed." 8 60
-		return 1
+		exit 1
 	} ;;
 	Node.js) command -v npm &>/dev/null || {
 		whiptail --msgbox "❌ npm not installed." 8 60
-		return 1
+		exit 1
 	} ;;
 	Go) command -v go &>/dev/null || {
 		whiptail --msgbox "❌ Go not installed." 8 60
-		return 1
+		exit 1
 	} ;;
 	Docker) command -v docker &>/dev/null || {
 		whiptail --msgbox "❌ Docker not installed." 8 60
-		return 1
+		exit 1
 	} ;;
 	APT) command -v apt-get &>/dev/null || {
 		whiptail --msgbox "❌ apt-get not found." 8 60
-		return 1
+		exit 1
 	} ;;
 	esac
 }
@@ -169,18 +173,6 @@ restore_config() {
 	esac
 }
 
-get_ping() {
-	local url="$1"
-	# Extract host from URL
-	local host
-	host=$(echo "$url" | awk -F[/:] '{print $4}')
-	# Ping once and get average round-trip time
-	if ping -c 1 -W 1 "$host" &>/dev/null; then
-		ping -c 1 -W 1 "$host" | tail -1 | awk -F '/' '{print $5 " ms"}'
-	else
-		echo "unreachable"
-	fi
-}
 
 # =====================================================
 # Apply mirrors
@@ -235,24 +227,36 @@ main_menu() {
 	done
 	categories+=("Restore" "Restore previous settings")
 	categories+=("Quit" "Exit")
-	whiptail --title "MirrorMate" --menu "Select a category:" 20 70 10 "${categories[@]}" 3>&1 1>&2 2>&3
+	whiptail --title "MirrorMate" --menu "Select Mirror Type:" 20 70 10 "${categories[@]}" 3>&1 1>&2 2>&3
 }
+
 # =====================================================
 # Mirror Menu
 # =====================================================
-
 mirror_menu() {
-	local category="$1"
-	local items=()
+    local category="$1"
+    local items=()
 
-	for entry in "${MIRRORS[@]}"; do
-		IFS='|' read -r cat name url <<<"$entry"
-		[[ "$cat" == "$category" ]] || continue
-		ping_time=$(get_ping "$url")
-		items+=("$name" "- $Ping: $ping_time")
-	done
-	items+=("back" "Go Back")
-	whiptail --title "$category Mirrors" --menu "Select a mirror (ping shown):" 20 120 10 "${items[@]}" 3>&1 1>&2 2>&3
+    for entry in "${MIRRORS[@]}"; do
+        IFS='|' read -r cat name url <<< "$entry"
+        [[ "$cat" != "$category" ]] && continue
+
+        # For APT mirrors, just grab the first line (first "deb" entry)
+        if [[ "$cat" == "APT" ]]; then
+            local first_url
+            first_url=$(echo "$url" | head -n1 | awk '{print $2}') # take only the URL part
+            items+=("$name" "$first_url")
+        else
+            # Normal case (Python, Node, Docker, etc.)
+            items+=("$name" "$url")
+        fi
+    done
+
+    items+=("back" "Go Back")
+
+    whiptail --title "$category Mirrors" \
+        --menu "Select a mirror:" 20 90 10 \
+        "${items[@]}" 3>&1 1>&2 2>&3
 }
 
 restore_menu() {
@@ -302,7 +306,6 @@ while true; do
 		;;
 	*)
 		while true; do
-			echo "Calculating Ping, please wait ..."
 			mchoice=$(mirror_menu "$choice")
 			[[ "$mchoice" == "back" ]] && break
 			for entry in "${MIRRORS[@]}"; do
