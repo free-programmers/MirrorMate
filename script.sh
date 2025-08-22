@@ -23,19 +23,23 @@ DISTRO_VERSION=$(grep VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
 mkdir -p "$BACKUP_DIR"
 
 # =====================================================
-# Check and install whiptail if missing
+# Check & install required tools: whiptail, jq
 # =====================================================
-if ! command -v whiptail &>/dev/null; then
-    read -rp "⚠️  'whiptail' is required but not installed. Do you want to install it now? [y/N]: " choice
-    if [[ "$choice" =~ ^[Yy]$ ]]; then
-        apt-get update -y
-        echo "Installing whiptail..."
-        apt-get install -y whiptail
-    else
-        echo "❌ 'whiptail' is required to run this application. Exiting..."
-        exit 1
+for dep in whiptail jq; do
+    if ! command -v "$dep" &>/dev/null; then
+        # Ask user for installation
+        read -rp "⚠️  '$dep' is required but not installed. Do you want to install it now? [y/N]: " choice
+        if [[ "$choice" =~ ^[Yy]$ ]]; then
+            apt-get update -y
+            echo "Installing $dep..."
+            apt-get install -y "$dep"
+        else
+            echo "❌ '$dep' is required to run this application. Exiting..."
+            exit 1
+        fi
     fi
-fi
+done
+
 
 clear
 
@@ -84,40 +88,29 @@ load_user_env
 # Mirror list
 # Format: category|display name|mirror URL or sources
 # =====================================================
-MIRRORS=(
-	"Python|PyPI - Runflare (Iran)|https://mirror-pypi.runflare.com/simple"
-	"Python|PyPI - Tsinghua (China)|https://pypi.tuna.tsinghua.edu.cn/simple"
-	"Python|PyPI - Aliyun (China)|https://mirrors.aliyun.com/pypi/simple/"
-	"Python|PyPI - IranRepo (IR ICT) (Iran)|https://repo.ito.gov.ir/python/"
-	"Python|PyPI - Mecan (AhmadRafiee) (Iran)|https://repo.mecan.ir/repository/pypi/"
-	"Python|PyPI - USTC (China)|https://pypi.mirrors.ustc.edu.cn/simple/"
-	"Python|PyPI - Fastly (Global)|https://pypi.org/simple"
-	"Python|PyPI - sustech.edu (China)|https://mirrors.sustech.edu.cn/pypi/web/simple"
-	"Python|PyPI - cloud.tencent.com (China)|https://mirrors.cloud.tencent.com/pypi/simple/"
+fetch_mirrors() {
+    local url="$1"
+    
+    # Download JSON to temp file
+    TMP_JSON=$(mktemp)
+    curl -sSL "$url" -o "$TMP_JSON" || { echo "❌ Failed to fetch mirrors from $url"; exit 1; }
 
-	"Node.js|NPM - RunFlare (Iran)|https://mirror-npm.runflare.com"
-	"Node.js|NPM - Tsinghua (China)|https://registry.npmmirror.com"
-	"Node.js|NPM - Aliyun (China)|https://registry.npm.taobao.org"
-	"Node.js|NPM - IranRepo (IR ICT) (Iran)|https://repo.ito.gov.ir/npm/"
-	"Node.js|NPM - Yarnpkg (Global)|https://registry.yarnpkg.com"
+    # Parse JSON into Bash array
+    MIRRORS=()
+    while IFS= read -r entry; do
+        # Extract fields using jq
+        category=$(echo "$entry" | jq -r '.category')
+        name=$(echo "$entry" | jq -r '.name')
+        url=$(echo "$entry" | jq -r '.url')
+        MIRRORS+=("$category|$name|$url")
+    done < <(jq -c '.[]' "$TMP_JSON")
 
-	"Docker|Docker Hub - Docker Official (Global)|https://registry-1.docker.io"
-	"Docker|Docker Hub - ArvanCloud (Iran)|https://docker.arvancloud.ir"
-	"Docker|Docker Hub - Hamravesh (Iran)|https://hub.hamdocker.ir"
-	"Docker|Docker Hub - Focker (Iran)|https://focker.ir"
-	"Docker|Docker Hub - Runflare (Iran)|https://mirror-docker.runflare.com"
-	"Docker|Docker Hub - IranServer (Iran)|https://docker.iranserver.com"
-	"Docker|Docker Hub - USTC (China)|https://docker.mirrors.ustc.edu.cn"
-	"Docker|Docker Hub - MobinHost (Iran)|https://docker.mobinhost.com"
+    rm -f "$TMP_JSON"
+}
 
-	"Go|GoProxy - Aliyun (China)|https://mirrors.aliyun.com/goproxy/"
-	"Go|GoProxy - Golang Official (Global)|https://proxy.golang.org"
-
-	"APT|Ubuntu - ArvanCloud (Iran)|deb http://mirror.arvancloud.ir/ubuntu/ $DISTRO_CODENAME main restricted universe multiverse\ndeb http://mirror.arvancloud.ir/ubuntu/ ${DISTRO_CODENAME}-updates main restricted universe multiverse\ndeb http://mirror.arvancloud.ir/ubuntu/ ${DISTRO_CODENAME}-security main restricted universe multiverse"
-	"APT|Ubuntu - Tsinghua (China)|deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ $DISTRO_CODENAME main restricted universe multiverse\ndeb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ ${DISTRO_CODENAME}-updates main restricted universe multiverse\ndeb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ ${DISTRO_CODENAME}-security main restricted universe multiverse"
-	"APT|Ubuntu - MobinHost (Iran)|deb https://ubuntu.mobinhost.com/ubuntu/ $DISTRO_CODENAME main restricted universe multiverse\ndeb https://ubuntu.mobinhost.com/ubuntu/ ${DISTRO_CODENAME}-updates main restricted universe multiverse\ndeb https://ubuntu.mobinhost.com/ubuntu/ ${DISTRO_CODENAME}-security main restricted universe multiverse"
-	"APT|Ubuntu - Official (Global)|deb http://archive.ubuntu.com/ubuntu $DISTRO_CODENAME main restricted universe multiverse\ndeb http://archive.ubuntu.com/ubuntu ${DISTRO_CODENAME}-updates main restricted universe multiverse\ndeb http://archive.ubuntu.com/ubuntu ${DISTRO_CODENAME}-security main restricted universe multiverse"
-)
+# Fetch mirrors dynamically
+MIRRORS_URL="https://raw.githubusercontent.com/free-programmers/MirrorMate/refs/heads/main/mirros/mirrors.json"
+fetch_mirrors "$MIRRORS_URL"
 
 # =====================================================
 # Dependency check
