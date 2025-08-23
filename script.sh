@@ -93,23 +93,35 @@ load_user_env
 fetch_mirrors() {
     local url="$1"
     
-    # Download JSON to temp file
     TMP_JSON=$(mktemp)
     curl -sSL "$url" -o "$TMP_JSON" || { echo "❌ Failed to fetch mirrors from $url"; exit 1; }
 
-    # Parse JSON into Bash array
     MIRRORS=()
-	while IFS= read -r entry; do
-		category=$(echo "$entry" | jq -r '.category')
-		name=$(echo "$entry" | jq -r '.name')
-		url=$(echo "$entry" | jq -r '.url')
-		url=$(eval echo "$url")  # <- expands $DISTRO_CODENAME etc.
-		MIRRORS+=("$category|$name|$url")
-	done < <(jq -c '.[]' "$TMP_JSON")
 
+while IFS= read -r entry; do
+    category=$(echo "$entry" | jq -r '.category')
+    name=$(echo "$entry" | jq -r '.name')
+
+    echo "🔹 Mirror: $name ($category)"
+
+    # Handle new APT array structure
+    if [[ "$category" == "APT" ]]; then
+        expanded_url=$(echo "$entry" | jq -r '.urls[]' | sed -E "s/\\\$\{?DISTRO_CODENAME\}?/$DISTRO_CODENAME/g")
+    else
+        # fallback for Python/NPM/Docker/Go
+        expanded_url=$(echo "$entry" | jq -r '.url')
+    fi
+	echo $expanded_url
+    # Add to MIRRORS array
+    MIRRORS+=("$category|$name|$expanded_url")
+
+    echo "--------------------------------------------------"
+done < <(jq -c '.[]' "$TMP_JSON")
 
     rm -f "$TMP_JSON"
 }
+
+
 
 # Fetch mirrors dynamically
 MIRRORS_URL="https://raw.githubusercontent.com/free-programmers/MirrorMate/refs/heads/main/mirros/mirrors.json"
@@ -202,9 +214,11 @@ EOF
 		sudo systemctl restart docker
 		;;
 	APT)
-		echo -e "$url" >/etc/apt/sources.list.d/mirrormate.list
+		echo "$url" 
+		# Write all lines to sources.list.d/mirrormate.list
+		echo "$url" | tee /etc/apt/sources.list.d/mirrormate.list
 		apt-get update
-		;;
+	;;
 	esac
 }
 
@@ -236,16 +250,8 @@ mirror_menu() {
     for entry in "${MIRRORS[@]}"; do
         IFS='|' read -r cat name url <<< "$entry"
         [[ "$cat" != "$category" ]] && continue
+		items+=("$name" "$name mirror")
 
-        # For APT mirrors, just grab the first line (first "deb" entry)
-        if [[ "$cat" == "APT" ]]; then
-            local first_url
-            first_url=$(echo "$url" | head -n1 | awk '{print $2}') # take only the URL part
-            items+=("$name" "$first_url")
-        else
-            # Normal case (Python, Node, Docker, etc.)
-            items+=("$name" "$url")
-        fi
     done
 
     items+=("back" "Go Back")
@@ -254,6 +260,7 @@ mirror_menu() {
         --menu "Select a mirror:" 20 110 10 \
         "${items[@]}" 3>&1 1>&2 2>&3
 }
+
 
 restore_menu() {
 	local items=()
