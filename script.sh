@@ -84,6 +84,8 @@ load_user_env() {
 
 load_user_env
 
+
+
 # =====================================================
 # Mirror list
 # Format: category|display name|mirror URL or sources
@@ -97,13 +99,14 @@ fetch_mirrors() {
 
     # Parse JSON into Bash array
     MIRRORS=()
-    while IFS= read -r entry; do
-        # Extract fields using jq
-        category=$(echo "$entry" | jq -r '.category')
-        name=$(echo "$entry" | jq -r '.name')
-        url=$(echo "$entry" | jq -r '.url')
-        MIRRORS+=("$category|$name|$url")
-    done < <(jq -c '.[]' "$TMP_JSON")
+	while IFS= read -r entry; do
+		category=$(echo "$entry" | jq -r '.category')
+		name=$(echo "$entry" | jq -r '.name')
+		url=$(echo "$entry" | jq -r '.url')
+		url=$(eval echo "$url")  # <- expands $DISTRO_CODENAME etc.
+		MIRRORS+=("$category|$name|$url")
+	done < <(jq -c '.[]' "$TMP_JSON")
+
 
     rm -f "$TMP_JSON"
 }
