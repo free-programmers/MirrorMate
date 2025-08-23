@@ -31,6 +31,16 @@
   },
   {
     "category": "Python",
+    "name": "PyPI - HuaweiCloud (China)",
+    "url": "https://mirrors.huaweicloud.com/repository/pypi/simple"
+  },
+  {
+    "category": "Python",
+    "name": "PyPI - tsinghua (China)",
+    "url": "https://pypi.tuna.tsinghua.edu.cn/simple/"
+  },
+  {
+    "category": "Python",
     "name": "PyPI - Fastly (Global)",
     "url": "https://pypi.org/simple"
   },
