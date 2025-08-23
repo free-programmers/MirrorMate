@@ -248,7 +248,7 @@ mirror_menu() {
     items+=("back" "Go Back")
 
     whiptail --title "$category Mirrors" \
-        --menu "Select a mirror:" 20 90 10 \
+        --menu "Select a mirror:" 20 110 10 \
         "${items[@]}" 3>&1 1>&2 2>&3
 }
 
