@@ -14,53 +14,61 @@ fi
 # Detect the real user (who invoked sudo)
 TARGET_USER="${SUDO_USER:-$USER}"
 TARGET_HOME=$(eval echo "~$TARGET_USER")
-
 BACKUP_DIR="/var/lib/mirrormate/backup"
-mkdir -p "$BACKUP_DIR"
 DISTRO_CODENAME=$(
 	grep "UBUNTU_CODENAME" /etc/os-release | cut -d= -f2 ||
 		lsb_release -sc
 )
 DISTRO_VERSION=$(grep VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
+mkdir -p "$BACKUP_DIR"
 
 # =====================================================
-# Install dependencies if missing
+# Check & install required tools: whiptail, jq
 # =====================================================
-
-for dep in whiptail figlet lolcat; do
-	if ! command -v $dep &>/dev/null; then
-		echo "$dep is not installed on machine, trying to install it"
-		apt-get update
-		echo "Installing $dep..."
-		if [[ $dep == "lolcat" ]]; then
-			apt-get install -y ruby
-			gem install lolcat
-		else
-			apt-get install -y $dep
-		fi
-	fi
+for dep in whiptail jq; do
+    if ! command -v "$dep" &>/dev/null; then
+        # Ask user for installation
+        read -rp "⚠️  '$dep' is required but not installed. Do you want to install it now? [y/N]: " choice
+        if [[ "$choice" =~ ^[Yy]$ ]]; then
+            apt-get update -y
+            echo "Installing $dep..."
+            apt-get install -y "$dep"
+        else
+            echo "❌ '$dep' is required to run this application. Exiting..."
+            exit 1
+        fi
+    fi
 done
+
 
 clear
 
-# Fancy title
-figlet -f slant "MirrorMate" | lolcat
+echo -e "\e[32m"
+cat <<'EOF'
+ __  __ _                     __  __       _
+|  \/  (_)_ __ _ __ ___  _ __|  \/  | __ _| |_ ___
+| |\/| | | '__| '__/ _ \| '__| |\/| |/ _` | __/ _ \
+| |  | | | |  | | | (_) | |  | |  | | (_| | ||  __/
+|_|  |_|_|_|  |_|  \___/|_|  |_|  |_|\__,_|\__\___|
+EOF
+echo -e "\e[0m"
 
 # Intro banner
-cat <<'EOF' | lolcat
-/*───────────────────────────────────────────────────────────────
-    🚀 MirrorMate — Your new BFF for supercharging your system!  
-    ⚡ Switch to the fastest open-source mirrors, stress-free!  
-    😎✨ GitHub: https://github.com/free-programmers/MirrorMate
-───────────────────────────────────────────────────────────────*/
+cat <<'EOF' 
+───────────────────────────────────────────────────────────────
+ 🚀 MirrorMate — Your new BFF for blazing-fast mirrors!  
+ ⚡ Switch effortlessly to the fastest open-source repositories  
+ 😎 GitHub: https://github.com/free-programmers/MirrorMate
+───────────────────────────────────────────────────────────────
 EOF
 
 # User info display
-echo -e "\n🔧 Running Script for:\n"
-echo -e "   👤 User:          $TARGET_USER"
-echo -e "   🏠 Home Directory: $TARGET_HOME"
-echo -e "   🔁 Distro Codename: $DISTRO_CODENAME"
-echo -e "   🗓  Release Version: $DISTRO_VERSION\n"
+echo -e "\n🔧 Running Script For \n"
+printf "   👤 User             : %s\n"  "$TARGET_USER"
+printf "   🏠 Home Directory   : %s\n"  "$TARGET_HOME"
+printf "   🔁 Distro Codename  : %s\n"  "$DISTRO_CODENAME"
+printf "   🗓  Release Version  : %s\n"  "$DISTRO_VERSION"
+echo -e "\n───────────────────────────────────────────────────────────────\n"
 
 sleep 2
 # =====================================================
@@ -80,56 +88,29 @@ load_user_env
 # Mirror list
 # Format: category|display name|mirror URL or sources
 # =====================================================
-MIRRORS=(
-	"Python|PyPI - Runflare (Iran)|https://mirror-pypi.runflare.com/simple"
-	"Python|PyPI - Tsinghua (China)|https://pypi.tuna.tsinghua.edu.cn/simple"
-	"Python|PyPI - Aliyun (China)|https://mirrors.aliyun.com/pypi/simple/"
-	"Python|PyPI - IranRepo (IR ICT) (Iran)|https://repo.ito.gov.ir/python/"
-	"Python|PyPI - Mecan (AhmadRafiee) (Iran)|https://repo.mecan.ir/repository/pypi/"
-	"Python|PyPI - USTC (China)|https://pypi.mirrors.ustc.edu.cn/simple/"
-	"Python|PyPI - Fastly (Global)|https://pypi.org/simple"
-	"Python|PyPI - sustech.edu (China)|https://mirrors.sustech.edu.cn/pypi/web/simple"
-	"Python|PyPI - cloud.tencent.com (China)|https://mirrors.cloud.tencent.com/pypi/simple/"
+fetch_mirrors() {
+    local url="$1"
+    
+    # Download JSON to temp file
+    TMP_JSON=$(mktemp)
+    curl -sSL "$url" -o "$TMP_JSON" || { echo "❌ Failed to fetch mirrors from $url"; exit 1; }
 
-	"Node.js|NPM - RunFlare (Iran)|https://mirror-npm.runflare.com"
-	"Node.js|NPM - Tsinghua (China)|https://registry.npmmirror.com"
-	"Node.js|NPM - Aliyun (China)|https://registry.npm.taobao.org"
-	"Node.js|NPM - IranRepo (IR ICT) (Iran)|https://repo.ito.gov.ir/npm/"
-	"Node.js|NPM - Yarnpkg (Global)|https://registry.yarnpkg.com"
+    # Parse JSON into Bash array
+    MIRRORS=()
+    while IFS= read -r entry; do
+        # Extract fields using jq
+        category=$(echo "$entry" | jq -r '.category')
+        name=$(echo "$entry" | jq -r '.name')
+        url=$(echo "$entry" | jq -r '.url')
+        MIRRORS+=("$category|$name|$url")
+    done < <(jq -c '.[]' "$TMP_JSON")
 
-	"Docker|Docker Hub - Docker Official (Global)|https://registry-1.docker.io"
-	"Docker|Docker Hub - ArvanCloud (Iran)|https://docker.arvancloud.ir"
-	"Docker|Docker Hub - Hamravesh (Iran)|https://hub.hamdocker.ir"
-	"Docker|Docker Hub - Focker (Iran)|https://focker.ir"
-	"Docker|Docker Hub - Runflare (Iran)|https://mirror-docker.runflare.com"
-	"Docker|Docker Hub - IranServer (Iran)|https://docker.iranserver.com"
-	"Docker|Docker Hub - USTC (China)|https://docker.mirrors.ustc.edu.cn"
-	"Docker|Docker Hub - MobinHost (Iran)|https://docker.mobinhost.com"
+    rm -f "$TMP_JSON"
+}
 
-	"Go|GoProxy - Aliyun (China)|https://mirrors.aliyun.com/goproxy/"
-	"Go|GoProxy - Golang Official (Global)|https://proxy.golang.org"
-
-	"APT|Ubuntu - ArvanCloud (Iran)|deb http://mirror.arvancloud.ir/ubuntu/ $DISTRO_CODENAME main restricted universe multiverse
-    deb http://mirror.arvancloud.ir/ubuntu/ ${DISTRO_CODENAME}-updates main restricted universe multiverse
-    deb http://mirror.arvancloud.ir/ubuntu/ ${DISTRO_CODENAME}-security main restricted universe multiverse"
-
-	"APT|Ubuntu - Tsinghua (China)|deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ $DISTRO_CODENAME main restricted universe multiverse
-    deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ ${DISTRO_CODENAME}-updates main restricted universe multiverse
-    deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ ${DISTRO_CODENAME}-security main restricted universe multiverse"
-
-	"APT|Ubuntu - MobinHost (Iran)|deb https://ubuntu.mobinhost.com/ubuntu/ $DISTRO_CODENAME main restricted universe multiverse
-    deb https://ubuntu.mobinhost.com/ubuntu/ ${DISTRO_CODENAME}-updates main restricted universe multiverse
-    deb https://ubuntu.mobinhost.com/ubuntu/ ${DISTRO_CODENAME}-security main restricted universe multiverse"
-
-	"APT|Ubuntu - IranRepo (IR ICT) (Iran)|deb https://repo.ito.gov.ir/ubuntu/ $DISTRO_CODENAME main restricted universe multiverse
-    deb https://repo.ito.gov.ir/ubuntu ${DISTRO_CODENAME}-updates main restricted universe multiverse
-    deb https://repo.ito.gov.ir/ubuntu/ ${DISTRO_CODENAME}-security main restricted universe multiverse"
-
-	"APT|Ubuntu - Official (Global)|deb http://archive.ubuntu.com/ubuntu $DISTRO_CODENAME main restricted universe multiverse
-    deb http://archive.ubuntu.com/ubuntu ${DISTRO_CODENAME}-updates main restricted universe multiverse
-    deb http://archive.ubuntu.com/ubuntu ${DISTRO_CODENAME}-security main restricted universe multiverse"
-
-)
+# Fetch mirrors dynamically
+MIRRORS_URL="https://raw.githubusercontent.com/free-programmers/MirrorMate/refs/heads/main/mirros/mirrors.json"
+fetch_mirrors "$MIRRORS_URL"
 
 # =====================================================
 # Dependency check
@@ -139,23 +120,23 @@ check_dependency() {
 	case "$category" in
 	Python) command -v pip &>/dev/null || {
 		whiptail --msgbox "❌ pip not installed." 8 60
-		return 1
+		exit 1
 	} ;;
 	Node.js) command -v npm &>/dev/null || {
 		whiptail --msgbox "❌ npm not installed." 8 60
-		return 1
+		exit 1
 	} ;;
 	Go) command -v go &>/dev/null || {
 		whiptail --msgbox "❌ Go not installed." 8 60
-		return 1
+		exit 1
 	} ;;
 	Docker) command -v docker &>/dev/null || {
 		whiptail --msgbox "❌ Docker not installed." 8 60
-		return 1
+		exit 1
 	} ;;
 	APT) command -v apt-get &>/dev/null || {
 		whiptail --msgbox "❌ apt-get not found." 8 60
-		return 1
+		exit 1
 	} ;;
 	esac
 }
@@ -185,18 +166,6 @@ restore_config() {
 	esac
 }
 
-get_ping() {
-	local url="$1"
-	# Extract host from URL
-	local host
-	host=$(echo "$url" | awk -F[/:] '{print $4}')
-	# Ping once and get average round-trip time
-	if ping -c 1 -W 1 "$host" &>/dev/null; then
-		ping -c 1 -W 1 "$host" | tail -1 | awk -F '/' '{print $5 " ms"}'
-	else
-		echo "unreachable"
-	fi
-}
 
 # =====================================================
 # Apply mirrors
@@ -251,24 +220,36 @@ main_menu() {
 	done
 	categories+=("Restore" "Restore previous settings")
 	categories+=("Quit" "Exit")
-	whiptail --title "MirrorMate" --menu "Select a category:" 20 50 10 "${categories[@]}" 3>&1 1>&2 2>&3
+	whiptail --title "MirrorMate" --menu "Select Mirror Type:" 20 70 10 "${categories[@]}" 3>&1 1>&2 2>&3
 }
+
 # =====================================================
 # Mirror Menu
 # =====================================================
-
 mirror_menu() {
-	local category="$1"
-	local items=()
+    local category="$1"
+    local items=()
 
-	for entry in "${MIRRORS[@]}"; do
-		IFS='|' read -r cat name url <<<"$entry"
-		[[ "$cat" == "$category" ]] || continue
-		ping_time=$(get_ping "$url")
-		items+=("$name" "$Ping: $ping_time")
-	done
-	items+=("back" "Go Back")
-	whiptail --title "$category Mirrors" --menu "Select a mirror (ping shown):" 20 60 10 "${items[@]}" 3>&1 1>&2 2>&3
+    for entry in "${MIRRORS[@]}"; do
+        IFS='|' read -r cat name url <<< "$entry"
+        [[ "$cat" != "$category" ]] && continue
+
+        # For APT mirrors, just grab the first line (first "deb" entry)
+        if [[ "$cat" == "APT" ]]; then
+            local first_url
+            first_url=$(echo "$url" | head -n1 | awk '{print $2}') # take only the URL part
+            items+=("$name" "$first_url")
+        else
+            # Normal case (Python, Node, Docker, etc.)
+            items+=("$name" "$url")
+        fi
+    done
+
+    items+=("back" "Go Back")
+
+    whiptail --title "$category Mirrors" \
+        --menu "Select a mirror:" 20 90 10 \
+        "${items[@]}" 3>&1 1>&2 2>&3
 }
 
 restore_menu() {
@@ -318,7 +299,6 @@ while true; do
 		;;
 	*)
 		while true; do
-			echo "Calculating Ping for $choice, please wait ..."
 			mchoice=$(mirror_menu "$choice")
 			[[ "$mchoice" == "back" ]] && break
 			for entry in "${MIRRORS[@]}"; do
