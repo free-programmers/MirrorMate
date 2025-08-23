@@ -56,11 +56,11 @@ cat <<'EOF' | lolcat
 EOF
 
 # User info display
-echo -e "\n🔧 Running Script for:\n" | lolcat
-echo -e "   👤 User:          $TARGET_USER" | lolcat
-echo -e "   🏠 Home Directory: $TARGET_HOME" | lolcat
-echo -e "   🔁 Distro Codename: $DISTRO_CODENAME" | lolcat
-echo -e "   🗓  Release Version: $DISTRO_VERSION\n" | lolcat
+echo -e "\n🔧 Running Script for:\n"
+echo -e "   👤 User:          $TARGET_USER"
+echo -e "   🏠 Home Directory: $TARGET_HOME"
+echo -e "   🔁 Distro Codename: $DISTRO_CODENAME"
+echo -e "   🗓  Release Version: $DISTRO_VERSION\n"
 
 sleep 2
 # =====================================================
@@ -251,7 +251,7 @@ main_menu() {
 	done
 	categories+=("Restore" "Restore previous settings")
 	categories+=("Quit" "Exit")
-	whiptail --title "MirrorMate" --menu "Select a category:" 20 70 10 "${categories[@]}" 3>&1 1>&2 2>&3
+	whiptail --title "MirrorMate" --menu "Select a category:" 20 50 10 "${categories[@]}" 3>&1 1>&2 2>&3
 }
 # =====================================================
 # Mirror Menu
@@ -268,7 +268,7 @@ mirror_menu() {
 		items+=("$name" "$Ping: $ping_time")
 	done
 	items+=("back" "Go Back")
-	whiptail --title "$category Mirrors" --menu "Select a mirror (ping shown):" 20 120 10 "${items[@]}" 3>&1 1>&2 2>&3
+	whiptail --title "$category Mirrors" --menu "Select a mirror (ping shown):" 20 60 10 "${items[@]}" 3>&1 1>&2 2>&3
 }
 
 restore_menu() {
@@ -280,7 +280,7 @@ restore_menu() {
 	done
 	items+=("all" "Restore All")
 	items+=("back" "Go Back")
-	whiptail --title "Restore Settings" --menu "Select to restore:" 20 70 10 "${items[@]}" 3>&1 1>&2 2>&3
+	whiptail --title "Restore Settings" --menu "Select to restore:" 20 60 10 "${items[@]}" 3>&1 1>&2 2>&3
 }
 
 # =====================================================
@@ -318,7 +318,7 @@ while true; do
 		;;
 	*)
 		while true; do
-			echo "Calculating Ping, please wait ..."
+			echo "Calculating Ping for $choice, please wait ..."
 			mchoice=$(mirror_menu "$choice")
 			[[ "$mchoice" == "back" ]] && break
 			for entry in "${MIRRORS[@]}"; do
