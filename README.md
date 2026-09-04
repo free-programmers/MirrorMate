@@ -6,6 +6,43 @@
 
 MirrorMate is a safe mirror switcher for APT, PyPI, NPM, Go, and Docker. It has a shared Python core, an automation-friendly CLI, and a lightweight curses TUI. The runtime uses only the Python standard library.
 
+<p align="center">
+  <img src="./docs/demo.gif" alt="MirrorMate TUI demo showing live mirror speed tests and theme selection" width="100%">
+</p>
+
+<p align="center"><sub>One real TUI session: browse mirrors, run live HTTP speed tests, compare results, and switch themes.</sub></p>
+
+## TUI preview
+
+MirrorMate includes persistent TUI settings and a multi-theme interface. Users can control automatic speed tests, request attempts, timeouts, mirror sorting, and the active color theme from inside the application.
+
+<table>
+  <tr>
+    <th width="50%">Mirror dashboard</th>
+    <th width="50%">Live speed-test results</th>
+  </tr>
+  <tr>
+    <td><img src="./docs/tui-dashboard.png" alt="MirrorMate mirror dashboard"></td>
+    <td><img src="./docs/tui-speed-test.png" alt="MirrorMate live HTTP mirror speed-test results"></td>
+  </tr>
+  <tr>
+    <th>Persistent settings</th>
+    <th>Built-in theme selector</th>
+  </tr>
+  <tr>
+    <td><img src="./docs/tui-settings.png" alt="MirrorMate persistent TUI settings"></td>
+    <td><img src="./docs/tui-themes.png" alt="MirrorMate multi-theme selector"></td>
+  </tr>
+  <tr>
+    <th>Forest theme</th>
+    <th>Violet theme</th>
+  </tr>
+  <tr>
+    <td><img src="./docs/tui-theme-forest.png" alt="MirrorMate Forest color theme"></td>
+    <td><img src="./docs/tui-theme-violet.png" alt="MirrorMate Violet color theme"></td>
+  </tr>
+</table>
+
 ## Features
 
 - Opens the TUI when `mirrormate` is run in an interactive terminal.
@@ -260,6 +297,12 @@ Build the architecture-independent Debian package:
 
 ```bash
 sh scripts/build-deb.sh
+```
+
+Regenerate the README screenshots, GIF, and video with the real TUI in a temporary profile (requires Pillow, pexpect, DejaVu Sans Mono, and FFmpeg):
+
+```bash
+PYTHONPATH=src python3 scripts/record-demo.py
 ```
 
 The CI matrix runs tests and package smoke checks on the supported Ubuntu and Debian releases.
