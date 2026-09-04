@@ -1,0 +1,11 @@
+Package: mirrormate
+Version: @VERSION@
+Section: utils
+Priority: optional
+Architecture: all
+Depends: python3 (>= 3.10)
+Maintainer: MirrorMate contributors <alisharifyofficial@gmail.com>
+Homepage: https://github.com/free-programmers/MirrorMate
+Description: Safe package repository mirror switcher
+ MirrorMate provides a shared CLI and curses TUI for benchmarking and
+ configuring APT, PyPI, NPM, Go, and Docker repository mirrors.

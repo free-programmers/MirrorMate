@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "mirrors": [
+    {
+      "id": "pypi-official",
+      "type": "python",
+      "name": "PyPI Official",
+      "url": "https://pypi.org/simple",
+      "probe_url": "https://pypi.org/simple/pip/"
+    },
+    {
+      "id": "npm-official",
+      "type": "npm",
+      "name": "NPM Official",
+      "url": "https://registry.npmjs.org",
+      "probe_url": "https://registry.npmjs.org/-/ping"
+    },
+    {
+      "id": "go-official",
+      "type": "go",
+      "name": "Go Module Proxy Official",
+      "url": "https://proxy.golang.org",
+      "probe_url": "https://proxy.golang.org/golang.org/x/text/@v/list"
+    },
+    {
+      "id": "docker-default",
+      "type": "docker",
+      "name": "Docker Hub Default",
+      "url": "https://registry-1.docker.io",
+      "probe_url": "https://registry-1.docker.io/v2/",
+      "default": true
+    },
+    {
+      "id": "ubuntu-official",
+      "type": "apt",
+      "name": "Ubuntu Official",
+      "distro": "ubuntu",
+      "archive_url": "https://archive.ubuntu.com/ubuntu",
+      "security_url": "https://security.ubuntu.com/ubuntu",
+      "architectures": ["amd64", "i386"]
+    },
+    {
+      "id": "ubuntu-ports-official",
+      "type": "apt",
+      "name": "Ubuntu Ports Official",
+      "distro": "ubuntu",
+      "archive_url": "https://ports.ubuntu.com/ubuntu-ports",
+      "security_url": "https://ports.ubuntu.com/ubuntu-ports",
+      "architectures": ["arm64", "armhf", "ppc64el", "riscv64", "s390x"]
+    },
+    {
+      "id": "debian-official",
+      "type": "apt",
+      "name": "Debian Official",
+      "distro": "debian",
+      "archive_url": "https://deb.debian.org/debian",
+      "security_url": "https://deb.debian.org/debian-security"
+    }
+  ]
+}

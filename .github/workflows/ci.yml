@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: python -m unittest discover -s tests -v
+      - run: python -m compileall -q src tests
+      - run: bash -n script.sh install.sh scripts/build-deb.sh
+      - run: sh scripts/build-deb.sh
+      - run: dpkg-deb --info dist/mirrormate_all.deb
+
+  package-smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - ubuntu:22.04
+          - ubuntu:24.04
+          - ubuntu:26.04
+          - debian:12
+          - debian:13
+    steps:
+      - uses: actions/checkout@v4
+      - run: sh scripts/build-deb.sh
+      - name: Install and smoke test
+        run: |
+          docker run --rm \
+            -v "$PWD/dist/mirrormate_all.deb:/tmp/mirrormate.deb:ro" \
+            "${{ matrix.image }}" \
+            sh -c 'apt-get update && apt-get install -y /tmp/mirrormate.deb && mirrormate --version && mirrormate list --json'
